@@ -16,6 +16,8 @@ WORKDIR /app
 # Copy dependency files first for better caching
 COPY pyproject.toml ./
 
+COPY pyproject.toml README.md LICENSE ./
+
 # Create virtual environment and install dependencies
 RUN uv venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
