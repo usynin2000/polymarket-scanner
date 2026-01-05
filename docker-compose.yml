@@ -1,0 +1,74 @@
+version: "3.9"
+
+services:
+  scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: polymarket-scanner
+    restart: unless-stopped
+    
+    # Load environment variables from .env file
+    env_file:
+      - .env
+    
+    # Override specific environment variables if needed
+    environment:
+      - SCANNER_LOG_LEVEL=${SCANNER_LOG_LEVEL:-INFO}
+      # Telegram settings (optional)
+      - SCANNER_TELEGRAM_BOT_TOKEN=${SCANNER_TELEGRAM_BOT_TOKEN:-}
+      - SCANNER_TELEGRAM_CHAT_ID=${SCANNER_TELEGRAM_CHAT_ID:-}
+      - SCANNER_TELEGRAM_ENABLED=${SCANNER_TELEGRAM_ENABLED:-false}
+      # API credentials (optional, for authenticated access)
+      - SCANNER_PRIVATE_KEY=${SCANNER_PRIVATE_KEY:-}
+      # Filter settings
+      - SCANNER_MIN_TRADE_SIZE_USD=${SCANNER_MIN_TRADE_SIZE_USD:-2000}
+    
+    # Resource limits (adjust based on your server)
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Network mode - use host for better WebSocket performance
+    # Or use bridge (default) for isolation
+    # network_mode: host
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  # Development/testing with mock data
+  scanner-mock:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: polymarket-scanner-mock
+    profiles:
+      - dev
+    environment:
+      - SCANNER_LOG_LEVEL=DEBUG
+    # Run without --live flag for mock mode
+    command: []
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+

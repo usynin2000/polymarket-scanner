@@ -1,0 +1,148 @@
+You are a senior Python backend engineer with experience in:
+- real-time data pipelines
+- WebSocket consumers
+- crypto / prediction markets
+- clean architecture and extensible systems
+
+Your task is to design and implement a Polymarket trade scanner in Python.
+
+========================
+GOAL
+========================
+
+Build a real-time scanner that listens to Polymarket trades via WebSocket
+and processes each trade through the following pipeline:
+
+Polymarket CLOB WebSocket
+→ Trade received
+→ Market filter
+→ Size filter
+→ LP detection
+→ Signal detection
+→ Alert enrichment
+→ Output to console (print / structured log)
+
+No Discord or Telegram yet — ONLY console output.
+
+========================
+TECH STACK
+========================
+
+- Python 3.12
+- uv (for dependency management)
+- asyncio
+- websockets or aiohttp
+- dataclasses / pydantic (your choice)
+- structured logging (logging module)
+
+========================
+ARCHITECTURE REQUIREMENTS
+========================
+
+1. Clean, modular architecture
+2. Each pipeline step must be a separate component
+3. Easy to enable / disable filters
+4. Easy to add new signal detectors
+5. Stateless core logic where possible
+6. Clear separation between:
+   - transport (WebSocket)
+   - domain logic (filters, signals)
+   - output layer
+
+========================
+PIPELINE LOGIC
+========================
+
+Implement the following logic exactly:
+
+--------------------------------
+1. Market Filter
+--------------------------------
+Discard trades if:
+- Market category is excluded (sports, crypto, time-based, etc.)
+- Market metadata does not match allowed rules
+
+--------------------------------
+2. Size Filter
+--------------------------------
+Discard trades if:
+- Trade size < $2,000 USD
+
+--------------------------------
+3. LP Detection
+--------------------------------
+Discard trades if:
+- Trade looks like a liquidity provider action
+- Balanced positions
+- Repetitive symmetric behavior
+
+(Heuristic-based, not perfect)
+
+--------------------------------
+4. Signal Detection
+--------------------------------
+Detect and label signals such as:
+- Fresh wallet (new or low-activity wallet)
+- Size anomaly (relative to market or wallet history)
+- Timing-based signal
+- Odds movement correlation
+- Contrarian behavior
+- Trade clustering
+
+Signals may overlap.
+
+--------------------------------
+5. Alert Enrichment
+--------------------------------
+For trades that pass all filters:
+- Fetch or compute wallet profile
+- Estimate historical win rate (mocked or placeholder)
+- Fetch current market odds
+- Add derived metrics
+
+--------------------------------
+6. Output
+--------------------------------
+Print a structured log to console, e.g.:
+
+[ALERT]
+Market: ...
+Wallet: ...
+Trade size: ...
+Side: YES / NO
+Signals: [FreshWallet, SizeAnomaly]
+Odds before / after: ...
+Confidence score: ...
+
+========================
+CODE REQUIREMENTS
+========================
+
+- Provide:
+  - project structure
+  - pyproject.toml compatible with uv
+  - clear module boundaries
+- Use async throughout
+- Include type hints
+- Include docstrings
+- Include TODO markers where real APIs are unknown
+- WebSocket connection should be mockable
+
+========================
+DELIVERABLE
+========================
+
+1. Folder structure
+2. Explanation of architecture
+3. Core implementation (not pseudocode)
+4. Example console output
+5. Clear extension points for:
+   - Telegram bot
+   - Database
+   - ML scoring later
+
+DO NOT over-engineer.
+DO NOT add UI.
+DO NOT add persistence unless necessary.
+
+Focus on correctness, clarity, and extensibility.
