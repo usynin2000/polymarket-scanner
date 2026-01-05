@@ -73,7 +73,7 @@ def create_pipeline(use_mock: bool = True) -> Pipeline:
     # Create filters
     # NOTE: Filters disabled for debugging - uncomment when trades are flowing
     filters = [
-        # MarketFilter(config),  # Фильтр по категориям
+        MarketFilter(config),  # Фильтр по категориям
         SizeFilter(config),    # Фильтр по размеру ($2000+)
         # LPFilter(config),      # Фильтр LP
     ]
