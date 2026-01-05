@@ -19,7 +19,7 @@ services:
       # Telegram settings (optional)
       - SCANNER_TELEGRAM_BOT_TOKEN=${SCANNER_TELEGRAM_BOT_TOKEN:-}
       - SCANNER_TELEGRAM_CHAT_ID=${SCANNER_TELEGRAM_CHAT_ID:-}
-      - SCANNER_TELEGRAM_ENABLED=${SCANNER_TELEGRAM_ENABLED:-false}
+      - SCANNER_TELEGRAM_ENABLED=${SCANNER_TELEGRAM_ENABLED:-true}
       # API credentials (optional, for authenticated access)
       - SCANNER_PRIVATE_KEY=${SCANNER_PRIVATE_KEY:-}
       # Filter settings

@@ -38,6 +38,19 @@ class TelegramOutput(AlertOutput):
         self._chat_id = chat_id
         self._enabled = enabled
         self._bot: Bot | None = None
+        
+        # Log initialization status
+        if not self._bot_token:
+            logger.warning("Telegram bot token not configured")
+        if not self._chat_id:
+            logger.warning("Telegram chat ID not configured")
+        if not self._enabled:
+            logger.warning("Telegram output explicitly disabled")
+        
+        if self.enabled:
+            logger.info(f"Telegram output initialized (chat_id: {self._chat_id})")
+        else:
+            logger.warning("Telegram output is DISABLED")
 
     @property
     def enabled(self) -> bool:
@@ -58,6 +71,7 @@ class TelegramOutput(AlertOutput):
             alert: Alert to send.
         """
         if not self.enabled:
+            logger.debug("Telegram send skipped - output disabled")
             return
 
         try:
@@ -69,9 +83,9 @@ class TelegramOutput(AlertOutput):
                 parse_mode=ParseMode.HTML,
                 disable_web_page_preview=True,
             )
-            logger.debug(f"Alert sent to Telegram: {alert.trade.id}")
+            logger.info(f"Alert sent to Telegram: {alert.trade.id}")
         except Exception as e:
-            logger.error(f"Failed to send Telegram message: {e}")
+            logger.error(f"Failed to send Telegram message: {e}", exc_info=True)
 
     def _format_alert(self, alert: Alert) -> str:
         """

@@ -142,7 +142,16 @@ async def run_scanner(use_mock: bool = True) -> None:
     logger.info(f"Mode: {mode}")
     logger.info(f"Min trade size: ${config.min_trade_size_usd:,}")
     logger.info(f"Excluded categories: {[c.value for c in config.excluded_categories]}")
-    telegram_status = "enabled" if config.telegram_bot_token and config.telegram_chat_id else "disabled"
+    if config.telegram_bot_token and config.telegram_chat_id and config.telegram_enabled:
+        telegram_status = "enabled"
+    elif not config.telegram_enabled:
+        telegram_status = "disabled (SCANNER_TELEGRAM_ENABLED=false)"
+    elif not config.telegram_bot_token:
+        telegram_status = "disabled (no bot token)"
+    elif not config.telegram_chat_id:
+        telegram_status = "disabled (no chat ID)"
+    else:
+        telegram_status = "disabled"
     logger.info(f"Telegram notifications: {telegram_status}")
     logger.info("=" * 60)
 
