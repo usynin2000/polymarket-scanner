@@ -1,10 +1,22 @@
 """Domain models for the Polymarket scanner."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Any
+
+
+def _utc_now() -> datetime:
+    """Get current UTC time as timezone-aware datetime."""
+    return datetime.now(timezone.utc)
+
+
+def _make_aware(dt: datetime) -> datetime:
+    """Convert naive datetime to UTC-aware, or return as-is if already aware."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 class MarketCategory(str, Enum):
@@ -57,7 +69,9 @@ class Market:
         """Check if market is still active."""
         if self.end_date is None:
             return True
-        return datetime.now() < self.end_date
+        # Handle both timezone-aware and naive datetimes
+        end = _make_aware(self.end_date)
+        return _utc_now() < end
 
 
 @dataclass
@@ -104,7 +118,9 @@ class WalletProfile:
         """Calculate days since first activity."""
         if self.first_seen is None:
             return 0
-        return (datetime.now() - self.first_seen).days
+        # Handle both timezone-aware and naive datetimes
+        first = _make_aware(self.first_seen)
+        return (_utc_now() - first).days
 
 
 @dataclass
@@ -128,7 +144,7 @@ class Alert:
     odds_before: Decimal
     odds_after: Decimal
     confidence_score: Decimal
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=_utc_now)
 
     @property
     def signal_types(self) -> list[SignalType]:

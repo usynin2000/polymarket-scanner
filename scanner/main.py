@@ -71,9 +71,9 @@ def create_pipeline(use_mock: bool = True) -> Pipeline:
     )
 
     # Create filters
-    # NOTE: Filters disabled for debugging - uncomment when trades are flowing
+    # NOTE: MarketFilter uses shared market_service for caching
     filters = [
-        MarketFilter(config),  # Фильтр по категориям
+        MarketFilter(config, market_service=market_service),  # Фильтр по категориям
         SizeFilter(config),    # Фильтр по размеру ($2000+)
         # LPFilter(config),      # Фильтр LP
     ]

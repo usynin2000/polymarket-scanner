@@ -1,8 +1,14 @@
 """Market category filter."""
 
+import logging
+
 from scanner.config import ScannerConfig, config as default_config
-from scanner.domain.models import MarketCategory, Trade
+from scanner.domain.models import Market, MarketCategory, Trade
 from scanner.filters.base import FilterResult, TradeFilter
+from scanner.services.market_service import MarketService
+
+
+logger = logging.getLogger(__name__)
 
 
 class MarketFilter(TradeFilter):
@@ -10,17 +16,24 @@ class MarketFilter(TradeFilter):
     Filter trades based on market category.
 
     Discards trades from excluded categories like sports, crypto, time-based.
+    Automatically fetches market data if not attached to trade.
     """
 
-    def __init__(self, config: ScannerConfig | None = None):
+    def __init__(
+        self, 
+        config: ScannerConfig | None = None,
+        market_service: MarketService | None = None,
+    ):
         """
         Initialize market filter.
 
         Args:
             config: Scanner configuration. Uses default if not provided.
+            market_service: Service for fetching market data. Creates new if not provided.
         """
         self._config = config or default_config
         self._excluded = set(self._config.excluded_categories)
+        self._market_service = market_service or MarketService()
 
     @property
     def name(self) -> str:
@@ -37,10 +50,26 @@ class MarketFilter(TradeFilter):
         Returns:
             FilterResult - rejected if market category is excluded.
         """
-        if trade.market is None:
-            return FilterResult.reject("Market data not available")
+        # Fetch market data if not attached
+        market = trade.market
+        if market is None:
+            market = await self._market_service.get_market(
+                trade.market_id,
+                raw_data=trade.raw_data,
+            )
+            
+            if market is None:
+                logger.debug(f"Could not fetch market for trade {trade.id}")
+                return FilterResult.reject("Market data not available")
+            
+            # Attach market to trade for downstream processing
+            trade.market = market
 
-        category = trade.market.category
+        category = market.category
+        
+        logger.debug(
+            f"Market '{market.question[:50]}...' category: {category.value}"
+        )
 
         if category in self._excluded:
             return FilterResult.reject(
@@ -48,7 +77,7 @@ class MarketFilter(TradeFilter):
             )
 
         # Check if market is still active
-        if not trade.market.is_active:
+        if not market.is_active:
             return FilterResult.reject("Market is no longer active")
 
         return FilterResult.accept()

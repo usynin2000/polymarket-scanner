@@ -51,7 +51,10 @@ class AlertEnricher:
         # Fetch market data if not attached
         market = trade.market
         if market is None:
-            market = await self._market_service.get_market(trade.market_id)
+            market = await self._market_service.get_market(
+                trade.market_id, 
+                raw_data=trade.raw_data,
+            )
             if market is None:
                 return None
 

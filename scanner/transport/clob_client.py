@@ -56,6 +56,7 @@ class PolymarketCLOBClient:
         self._client = None
         self._last_market_refresh: float = 0
         self._session: Any = None  # Reusable aiohttp session
+        self._last_trade_timestamp: int = 0  # Unix timestamp for 'after' parameter
 
     def _init_client(self):
         """Initialize py-clob-client with credentials."""
@@ -276,8 +277,8 @@ class PolymarketCLOBClient:
     async def _fetch_trades(self) -> list[dict]:
         """Fetch recent trades using Data API /trades endpoint.
         
-        Data API returns public trade data in batches (cached for ~30s).
-        We deduplicate using transactionHash.
+        Uses 'after' parameter to fetch only trades newer than last poll,
+        reducing bandwidth and simplifying deduplication.
         
         Response fields:
         - proxyWallet: trader's wallet address
@@ -291,13 +292,19 @@ class PolymarketCLOBClient:
         - transactionHash: unique trade identifier
         """
         import aiohttp
+        import time
         
         try:
             session = await self._get_session()
             
-            # Fetch ALL recent trades - API returns cached batches every ~30s
-            # Deduplication is done via transactionHash in _parse_trade
-            url = "https://data-api.polymarket.com/trades?limit=100"
+            # Use 'after' parameter to get only new trades since last poll
+            # This reduces response size and simplifies deduplication
+            url = "https://data-api.polymarket.com/trades?limit=200"
+            
+            if self._last_trade_timestamp > 0:
+                # Add 'after' parameter to fetch only newer trades
+                url += f"&after={self._last_trade_timestamp}"
+                logger.debug(f"Fetching trades after timestamp {self._last_trade_timestamp}")
             
             try:
                 async with session.get(url) as resp:
@@ -311,6 +318,18 @@ class PolymarketCLOBClient:
                         logger.debug("No trades from Data API")
                         return []
                     
+                    # Update last timestamp from newest trade
+                    max_timestamp = self._last_trade_timestamp
+                    for trade in trades:
+                        if isinstance(trade, dict):
+                            ts = trade.get("timestamp", 0)
+                            if isinstance(ts, (int, float)) and ts > max_timestamp:
+                                max_timestamp = int(ts)
+                    
+                    if max_timestamp > self._last_trade_timestamp:
+                        self._last_trade_timestamp = max_timestamp
+                        logger.debug(f"Updated last_trade_timestamp to {max_timestamp}")
+                    
                     # Normalize field names
                     all_trades = []
                     for trade in trades:
@@ -320,7 +339,7 @@ class PolymarketCLOBClient:
                             trade["maker"] = trade.get("proxyWallet", "unknown")
                             all_trades.append(trade)
                     
-                    logger.debug(f"Fetched {len(all_trades)} trades from Data API")
+                    logger.debug(f"Fetched {len(all_trades)} trades from Data API (after={self._last_trade_timestamp})")
                     
                     return all_trades
                                         
@@ -364,9 +383,9 @@ class PolymarketCLOBClient:
 
             self._seen_trades.add(trade_id)
 
-            # Keep cache manageable
-            if len(self._seen_trades) > 10000:
-                self._seen_trades = set(list(self._seen_trades)[-5000:])
+            # Keep cache manageable (smaller now since 'after' param handles most filtering)
+            if len(self._seen_trades) > 2000:
+                self._seen_trades = set(list(self._seen_trades)[-1000:])
 
             # Parse fields
             size = safe_decimal(data.get("size", 0))
